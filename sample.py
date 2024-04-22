@@ -10,7 +10,7 @@ from tokenizers import Tokenizer, Encoding
 from models.progen.modeling_progen import ProGenForCausalLM
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-logger = logging.getLogger("main")
+logger = logging.getLogger(__name__)
 
 
 @torch.no_grad()
