@@ -121,7 +121,7 @@ def train_epoch(
             optimizer.zero_grad()
             pbar.update()
     pbar.close()
-    logger.info(f"\nTRAIN epoch {epoch}: loss: {total_loss / len(dataloader)}")
+    logger.info(f"TRAIN epoch {epoch}: loss: {total_loss / len(dataloader)}")
     logger.debug(f"Last learning rate: {scheduler.get_last_lr()}")
     return total_loss / len(dataloader)
 
@@ -172,24 +172,25 @@ def train(
         logger.info(f"Start time of epoch {epoch}: {datetime.now()}")
         train_loss = train_epoch(model, train_dataset, optimizer, scheduler, epoch, args)
         train_losses.append(train_loss)
-        logger.info(f"\nRunning test set evaluation after {epoch} epochs:")
+
+        logger.info(f"Running test set evaluation after {epoch} epochs:")
         eval_loss = evaluate(model, test_dataset, args)
         eval_losses.append(eval_loss)
-        model_name = job_id + "-" + args.model.strip("/").split("/")[-1]
+
+        model_name = (job_id + "-" if job_id is not None else "") + args.model.strip(os.pathsep).split(os.pathsep)[-1]
         if epoch % args.checkpoint_rate == 0 or epoch == args.epochs:
-            dir_path = f"./checkpoints/{model_name}-finetuned/e{epoch}/"
-            os.makedirs(dir_path, exist_ok=True)
-            model.save_pretrained(dir_path)
-            tokenizer.save(os.path.join(dir_path, "tokenizer.json"), pretty=True)
+            checkpoint_path = os.path.join("checkpoints", f"{model_name}-finetuned", f"e{epoch}")
+            os.makedirs(checkpoint_path, exist_ok=True)
+            
+            model.save_pretrained(checkpoint_path)
+            tokenizer.save(os.path.join(checkpoint_path, "tokenizer.json"), pretty=True)
+
             if args.save_optimizer:
                 logger.info("Saving optimizer and scheduler...")
-                torch.save(
-                    optimizer.state_dict(), os.path.join(dir_path, "optimizer.pt")
-                )
-                torch.save(
-                    scheduler.state_dict(), os.path.join(dir_path, "scheduler.pt")
-                )
-            logger.info(f"Model saved at: {dir_path}")
+                torch.save(optimizer.state_dict(), os.path.join(checkpoint_path, "optimizer.pt"))
+                torch.save(scheduler.state_dict(), os.path.join(checkpoint_path, "scheduler.pt"))
+
+            logger.info(f"Model saved at: {checkpoint_path}")
     return model, train_losses, eval_losses
 
 
@@ -234,7 +235,7 @@ def main(args: argparse.Namespace):
     # loading model
     logger.info(f"Loading model: {args.model}...")
     model = ProGenForCausalLM.from_pretrained(args.model).to(args.device)
-    logger.info(f"Model loaded. Model parameter count: {model.num_parameters() // 1e6} M")
+    logger.info(f"Model loaded. Parameter count: {model.num_parameters() // 1e6} M")
     init_new_embeddings(model, prefixes)
 
     # creating optimizer and scheduler
