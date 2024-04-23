@@ -23,7 +23,10 @@ def sample(
     num_return_sequences,
     temp=1.0,
     top_k=None,
-):
+) -> list[str]:
+    """
+    Generate samples from the model given a prompt. Using top-k sampling with temperature.
+    """
     model.eval()
     encoding: Encoding = tokenizer.encode(prompt)
     ids = torch.tensor(encoding.ids)                                 # (T,)
@@ -50,9 +53,7 @@ def sample(
         x = torch.multinomial(probs, num_samples=1)                  # (B, 1)
         generated_seqs = torch.cat([generated_seqs, x], dim=-1)      # (B, T+1)
 
-    decoded: list[str] = tokenizer.decode_batch(
-        [row.detach().cpu().numpy().tolist() for row in generated_seqs]
-    )
+    decoded = [tokenizer.decode(row.detach().cpu().numpy().tolist()) for row in generated_seqs]
     return decoded
 
 
@@ -95,6 +96,9 @@ def main(args):
 
     device = torch.device(args.device)
     logger.info(f"Device: {device}")
+
+    if str(device) == "cpu" and args.batch_size > 1:
+        logger.warning(f"You are using CPU for inference with a relatively high batch size of {args.batch_size}, therefore inference might be slow. Consider using a GPU or smaller batch.")
 
     logger.info(f"Loading model from {args.model}")
     model = ProGenForCausalLM.from_pretrained(args.model).to(device)
