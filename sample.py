@@ -5,7 +5,7 @@ import logging
 import torch
 from tqdm import tqdm
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from tokenizers import Tokenizer, Encoding
 from models.progen.modeling_progen import ProGenForCausalLM
@@ -19,7 +19,7 @@ def sample(
     model: ProGenForCausalLM,
     tokenizer: Tokenizer,
     device: torch.device,
-    prompt: str | torch.Tensor,
+    prompt: Union[str, torch.Tensor],
     max_length: int,
     num_return_sequences: int,
     temperature: int = 1.0,
