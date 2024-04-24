@@ -5,6 +5,7 @@ import logging
 import torch
 from tqdm import tqdm
 import re
+from typing import Optional
 
 from tokenizers import Tokenizer, Encoding
 from models.progen.modeling_progen import ProGenForCausalLM
@@ -15,45 +16,56 @@ logger = logging.getLogger(__name__)
 
 @torch.no_grad()
 def sample(
-    model,
-    tokenizer,
-    device,
-    prompt: str,
-    max_length,
-    num_return_sequences,
-    temp=1.0,
-    top_k=None,
+    model: ProGenForCausalLM,
+    tokenizer: Tokenizer,
+    device: torch.device,
+    prompt: str | torch.Tensor,
+    max_length: int,
+    num_return_sequences: int,
+    temperature: int = 1.0,
+    top_k: Optional[int] = None,
 ) -> list[str]:
     """
     Generate samples from the model given a prompt. Using top-k sampling with temperature.
     """
     model.eval()
-    encoding: Encoding = tokenizer.encode(prompt)
-    ids = torch.tensor(encoding.ids)                                 # (T,)
-    ids = ids[:len(torch.nonzero(ids))] 
 
-    x = torch.zeros((num_return_sequences, ids.shape[0]))            # (B, T)
-    x = x + ids
-    x = x.to(device).to(torch.int32)
+    if isinstance(prompt, str):
+        encoding: Encoding = tokenizer.encode(prompt)
+        ids = torch.tensor(encoding.ids)                                 # (T,)
+        ids = ids[:len(torch.nonzero(ids))]
+
+        x = torch.zeros((num_return_sequences, ids.shape[0]))            # (B, T)
+        x = x + ids
+        x = x.to(device).to(torch.int32)
+    # prompt is a tensor of token ids, with shape (B, T), in case of bidi smapling
+    elif isinstance(prompt, torch.Tensor):
+        x = prompt.to(device).to(torch.int32)                            # (B, T)
+    else:
+        raise ValueError("Prompt should be either string or torch.Tensor")
 
     past_key_values = None
-    generated_seqs = x
-    for _ in tqdm(range(ids.shape[0], max_length)):
+    generated = x
+
+    pbar = tqdm(total=max_length - generated.shape[-1])
+    while generated.shape[-1] < max_length:
         # using cached attn outputs from previous iterations
         output = model(x, past_key_values=past_key_values)
         past_key_values = output.past_key_values
         logits = output.logits                                       # (B, T, V)
         # get logits only for the last token
         logits = logits[:, -1, :]                                    # (B, V)
-        logits = logits / temp
+        logits = logits / temperature
         if top_k is not None:
             v, _ = torch.topk(logits, top_k, dim=-1)                 # (B, k)
             logits[logits < v[:, -1].unsqueeze(-1)] = -1e9           # (B, V)
         probs = torch.softmax(logits, dim=-1)                        # (B, V)
         x = torch.multinomial(probs, num_samples=1)                  # (B, 1)
-        generated_seqs = torch.cat([generated_seqs, x], dim=-1)      # (B, T+1)
+        generated = torch.cat([generated, x], dim=-1)      # (B, T+1)
+        pbar.update()
+    pbar.close()
 
-    decoded = [tokenizer.decode(row.detach().cpu().numpy().tolist()) for row in generated_seqs]
+    decoded = [tokenizer.decode(row.detach().cpu().numpy().tolist()) for row in generated]
     return decoded
 
 
@@ -65,7 +77,10 @@ def truncate(seq: str) -> str:
     Sequences begginning with 2 (C -> N generation) are reversed.
     """
 
+    # remove family token
     seq = re.sub(r"<\|pf\d+\|>", "", seq)
+
+    # remove initial terminus
     terminus = seq[0]
     seq = seq[1:]
 
@@ -77,11 +92,40 @@ def truncate(seq: str) -> str:
     if min_2 == -1:
         min_2 = len(seq)
 
+    # truncate the sequence to next terminus token
     seq = seq[: min(min_1, min_2)]
     if terminus == "1":
         return seq
     else:
         return seq[::-1]
+
+
+def reverse(seq: str) -> str:
+    """
+    Reverse a sequence that starts with a family token and initial terminus.
+    Then continue generating the sequence in opposite direction.
+    """
+    prefix_pattern = re.compile(r"<\|pf[0-9]{5}\|>")
+    m = re.search(prefix_pattern, seq)
+    prefix = m.group() if m else ""
+
+    # remove family token
+    seq = seq.replace(prefix, "")
+
+    # remove initial terminus and reverse the sequence
+    start_terminus = seq[0]
+    seq = seq[1:]
+    seq = seq[::-1]
+
+    # if we generated end of sequence
+    if seq[0] in ["1", "2"]:
+        seq = seq[1:]
+
+    # reverse and put opposite terminus
+    if start_terminus == "1":
+        return prefix + "2" + seq
+    else:
+        return prefix + "1" + seq
 
 
 def main(args):
@@ -105,24 +149,27 @@ def main(args):
     logger.debug("Model loaded.")
 
     logger.info("Loading tokenizer")
-    tokenizer = Tokenizer.from_pretrained(args.model)
+    tokenizer: Tokenizer = Tokenizer.from_pretrained(args.model)
+    tokenizer.no_padding()
     logger.debug("Tokenizer loaded.")
     logger.debug(f"Tokenizer vocab size: {tokenizer.get_vocab_size()}")
     logger.debug(f"Tokenizer vocab: {tokenizer.get_vocab()}")
 
     samples_dir = os.path.join("generated_samples", args.model.split("/")[-1])
     os.makedirs(samples_dir, exist_ok=True)
-    output_file = os.path.join(
-        samples_dir, f"samples_ctx{args.prompt}_k{args.k}_t{args.t}.fa"
-    )
-    logger.info(f"Generated samples will be saved to file {output_file}")
+    output_file = os.path.join(samples_dir, f"samples_ctx{args.prompt}_k{args.k}_t{args.t}.fa")
 
     if args.k == 0:
         args.k = None
 
     logger.debug(f"Sampling parameters: top_k={args.k}, temperature={args.t}")
     tokens = tokenizer.encode(args.prompt).tokens
-    logger.info(f"Prompt tokens: {tokens[:tokens.index('<|pad|>')]}")
+    logger.info(f"Prompt tokens: {tokens}")
+
+    if args.bidirectional:
+        args.max_length = (args.max_length - len(tokens)) // 2
+        if len(tokens) <= 2:
+            logger.warning("Prompt is too short for bidirectional sampling. Please provide a longer prompt.")
 
     with open(output_file, "w") as f:
         for i in range(args.iters):
@@ -133,14 +180,29 @@ def main(args):
                 device=device,
                 prompt=args.prompt,
                 num_return_sequences=args.batch_size,
-                temp=args.t,
+                temperature=args.t,
                 max_length=args.max_length,
                 top_k=args.k,
             )
+            if args.bidirectional:
+                reversed_samples = [reverse(s) for s in samples]
+                prompts = [torch.tensor(t.ids) for t in tokenizer.encode_batch(reversed_samples)]
+                prompts = torch.stack(prompts, dim=0).to(model.device)
+                samples = sample(
+                    model=model,
+                    tokenizer=tokenizer,
+                    device=device,
+                    prompt=prompts,
+                    num_return_sequences=args.batch_size,
+                    temperature=args.t,
+                    max_length=args.max_length * 2,
+                    top_k=args.k,
+                )
             for j, c in enumerate(samples):
                 print(f">seq_{i * args.batch_size + j}", file=f)
                 c = truncate(c)
                 print(c, file=f)
+    logger.info(f"Generated samples were saved to file {output_file}.")
 
 
 if __name__ == "__main__":
@@ -187,6 +249,11 @@ if __name__ == "__main__":
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--debug", action="store_true", help="Enable debug logging level.")
+    parser.add_argument(
+        "--bidirectional", 
+        action="store_true", 
+        help="Enable bidirectional sampling. After generating half of the sequence, it is flipped and model generates the other half in opposite direction."
+    )
     args = parser.parse_args()
 
     if args.debug:
