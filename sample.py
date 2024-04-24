@@ -186,18 +186,19 @@ def main(args):
             )
             if args.bidirectional:
                 reversed_samples = [reverse(s) for s in samples]
-                prompts = [torch.tensor(t.ids) for t in tokenizer.encode_batch(reversed_samples)]
-                prompts = torch.stack(prompts, dim=0).to(model.device)
-                samples = sample(
-                    model=model,
-                    tokenizer=tokenizer,
-                    device=device,
-                    prompt=prompts,
-                    num_return_sequences=args.batch_size,
-                    temperature=args.t,
-                    max_length=args.max_length * 2,
-                    top_k=args.k,
-                )
+                samples = []
+                for rs in reversed_samples:
+                    prompt = torch.tensor(tokenizer.encode(rs).ids).view(1, -1).to(model.device)
+                    samples.extend(sample(
+                        model=model,
+                        tokenizer=tokenizer,
+                        device=device,
+                        prompt=prompt,
+                        num_return_sequences=1,
+                        temperature=args.t,
+                        max_length=args.max_length * 2,
+                        top_k=args.k,
+                    ))
             for j, c in enumerate(samples):
                 print(f">seq_{i * args.batch_size + j}", file=f)
                 c = truncate(c)
