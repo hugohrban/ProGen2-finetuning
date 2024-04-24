@@ -117,11 +117,9 @@ def main(args):
 
     base_url = f"https://www.ebi.ac.uk:443/interpro/api/protein/UniProt/entry/pfam/{args.pfam_code}/?page_size=200&extra_fields=sequence"
 
-    if args.download_file is None:
-        os.makedirs("downloads/", exist_ok=True)
-        args.download_file = f"downloads/{args.pfam_code}.fasta"
-
-    download_pfam_entry(base_url, args.download_file)
+    os.makedirs("downloads", exist_ok=True)
+    download_file = os.path.join("downloads", f"{args.pfam_code}.fasta")
+    download_pfam_entry(base_url, download_file)
 
 
 if __name__ == "__main__":
@@ -129,9 +127,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "pfam_code",
         help='Pfam code of the family to be downloaded. Must be "PF" and 5 digits. Example: PF12345',
-    )
-    parser.add_argument(
-        "--download_file", help="Where the data should be saved", default=None
     )
     args = parser.parse_args()
     main(args)
