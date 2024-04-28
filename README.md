@@ -4,11 +4,9 @@
 
 Ever wanted to finetune a generative protein language model on protein families of your choice? No? Well, now you can!
 
----
-
 ## Usage
 
-We describe a simple workflow, on which we illustrate the usage of the provided python scripts.  
+We describe a simple workflow, in which we finetune the [ProGen2-small](https://github.com/salesforce/progen/tree/main/progen2) (`151M`) model illustrate the usage of the provided python scripts.
 
 ### Install dependencies
 
@@ -49,7 +47,7 @@ python3 prepare_data.py \
 
 ### Finetuning
 
-Now we can finetune the model on the prepared data. It is highly recommended to use a GPU for finetuning. We specify paths to the train and test files and the values of hyperparameters. The model weights are automatically downloaded from my huggingface [repo](https://huggingface.co/hugohrban/progen2-small). After finetuning, the model binary, config file and tokenizer are saved into the `checkpoints/` directory.
+Now we can finetune the model on the prepared data. It is highly recommended to use a GPU for finetuning. We specify paths to the train and test files and the values of hyperparameters. The base model weights are automatically downloaded from my huggingface [repo](https://huggingface.co/hugohrban/progen2-small). After finetuning, the model binary, config file and tokenizer are saved into the `checkpoints/` directory.
 
 ```bash
 python3 finetune.py \
@@ -88,11 +86,14 @@ Use the `--help` or `-h` option to see the full list of available options and th
 
 ## Loading the model directly
 
-You can load the model directly from the huggingface repository and use it in python. The following code snippet shows how to use the model to predict the next token probabilities given a prompt.
+You can load the model directly from the huggingface repository and use it in python. All of the models are registered for the `AutoModelForCausalLM` class, so you don't even need to have the model source code and config files stored locally. The following code snippet shows how to use the model to predict the next token probabilities given a prompt.
 
 ```python
 from transformers import AutoModelForCausalLM
 from transformers import AutoTokenizer
+# optionally use local imports
+# from models.progen.modeling_progen import ProGenForCausalLM
+# from models.progen.configuration_progen import ProGenConfig
 import torch
 import torch.nn.functional as F
 
@@ -105,10 +106,10 @@ prompt = "<|pf03668|>1MEVVIVTGMSGAGK"
 input_ids = torch.tensor(tokenizer.encode(prompt)).to(model.device)
 
 # forward pass
-output = model(input_ids).logits
+logits = model(input_ids).logits
 
 # print output probabilities
-next_token_logits = output[-1, :]
+next_token_logits = logits[-1, :]
 next_token_probs = F.softmax(next_token_logits, dim=-1)
 for i, prob in enumerate(next_token_probs):
     print(f"{tokenizer.decode(i)}: {100 * prob:.2f}%")
