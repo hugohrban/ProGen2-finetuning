@@ -284,24 +284,24 @@ if __name__ == "__main__":
         help="Device to run on. Default: \"cuda\"",
     )
     parser.add_argument(
-        "--train-file",
+        "--train_file",
         type=str,
         required=True,
         help="Path to training data file. Must contain preprocessed data (includes prefixes and one protein per line, e.g. not fasta format).",
     )
     parser.add_argument(
-        "--test-file",
+        "--test_file",
         type=str,
         required=True,
         help="Path to test data file. Must contain preprocessed data (includes prefixes and one protein per line, e.g. not fasta format).",
     )
     parser.add_argument("--seed", type=int, default=69)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument(
-        "--accumulation-steps",
+        "--accumulation_steps",
         type=int,
-        default=32,
-        help="How many steps to accumulate gradients before updating weights. Default: 32",
+        default=4,
+        help="How many steps to accumulate gradients before updating weights. Default: 4",
     )
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument(
@@ -311,13 +311,13 @@ if __name__ == "__main__":
         help="Learning rate. Check out also the '--decay' argument. Default: 1e-4",
     )
     parser.add_argument(
-        "--warmup-steps",
+        "--warmup_steps",
         type=int,
         default=200,
         help="Number of warmup steps for learning rate scheduler. Linearly increasing form 0 to --lr. Default: 200",
     )
     parser.add_argument(
-        "--checkpoint-rate", type=int, default=5, help="Save model checkpoint every n epochs. Default: 5"
+        "--checkpoint_rate", type=int, default=5, help="Save model checkpoint every n epochs. Default: 5"
     )
     parser.add_argument(
         "--decay",
@@ -327,13 +327,13 @@ if __name__ == "__main__":
         help="Learning rate decay. Default: \"cosine\"",
     )
     parser.add_argument(
-        "--save-optimizer",
+        "--save_optimizer",
         action="store_true",
         default=False,
         help="Should we also save the optimizer and scheduler at every checkpoint",
     )
     parser.add_argument(
-        "--eval-before-train",
+        "--eval_before_train",
         action="store_true",
         default=False,
         help="Run evaluation on test set before training. default: False",
