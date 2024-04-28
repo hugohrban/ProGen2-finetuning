@@ -61,8 +61,7 @@ def main():
     np.random.seed(args.seed)
 
     if not 0 <= args.train_split_ratio <= 1:
-        logging.error("Train split ratio must be between 0 and 1.")
-        return 1
+        raise ValueError("Train-test split ratio must be between 0 and 1.")
 
     train_data = []
     test_data = []
