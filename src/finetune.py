@@ -206,7 +206,7 @@ def main(args: argparse.Namespace):
         logger.warning("No Slurm job ID found.")
 
     # loading data and tokenizer
-    tokenizer: Tokenizer = Tokenizer.from_file("tokenizer.json")
+    tokenizer: Tokenizer = Tokenizer.from_pretrained(args.model)
     tokenizer.enable_padding(
         direction="right", pad_id=0, pad_token="<|pad|>", length=1024
     )
@@ -214,14 +214,14 @@ def main(args: argparse.Namespace):
 
     train_data, prefixes = load_data(args.train_file)
     test_data, prefixes_test = load_data(args.test_file)
-    logger.info("Found prefixes:", prefixes)
+    logger.info(f"Found prefixes: {prefixes}")
     assert prefixes == prefixes_test, "Prefixes in train and test data must be the same"
     tokenizer.add_tokens(prefixes)
 
     train_data = Protein_dataset(train_data, tokenizer)
     test_data = Protein_dataset(test_data, tokenizer)
-    logger.debug("Train data size:", len(train_data))
-    logger.debug("Test data size:", len(test_data))
+    logger.debug(f"Train data size: {len(train_data)}")
+    logger.debug(f"Test data size: {len(test_data)}")
 
     if args.device == "cuda" and not torch.cuda.is_available():
         logger.warning("CUDA not available. Falling back to CPU. Please consider using a GPU for training.")
@@ -244,8 +244,8 @@ def main(args: argparse.Namespace):
         args.epochs * len(train_data) // (args.batch_size * args.accumulation_steps)
     )
     if training_steps > 0:
-        logger.debug("Weight updates per epoch", training_steps / args.epochs)
-    logger.debug("Total weight updates:", training_steps)
+        logger.debug(f"Weight updates per epoch: {training_steps / args.epochs}")
+    logger.debug(f"Total weight updates: {training_steps}")
     scheduler = get_lr_schedule(optimizer, args, training_steps)
 
     if args.eval_before_train:
@@ -265,8 +265,8 @@ def main(args: argparse.Namespace):
     )
 
     logger.info("Finetuning finished.")
-    logger.info("Train losses", train_losses)
-    logger.info("Test losses", test_losses)
+    logger.info(f"Train losses: {train_losses}")
+    logger.info(f"Test losses: {test_losses}")
 
 
 if __name__ == "__main__":
