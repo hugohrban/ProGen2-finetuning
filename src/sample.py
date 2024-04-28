@@ -134,11 +134,11 @@ def main(args):
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
 
-    if not torch.cuda.is_available():
+    if args.device == "cuda" and not torch.cuda.is_available():
         logger.warning("CUDA not available. Falling back to CPU.")
-        args.device = "cpu"
-
-    device = torch.device(args.device)
+        device = torch.device("cpu")
+    else:
+        device = torch.device(args.device)
     logger.info(f"Device: {device}")
 
     if str(device) == "cpu" and args.batch_size > 1:
