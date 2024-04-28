@@ -228,13 +228,13 @@ if __name__ == "__main__":
         help="How many iterations of gerneration to run. Default: 1",
     )
     parser.add_argument(
-        "--batch-size",
+        "--batch_size",
         type=int,
         default=64,
         help="How many sequences to generate at one iteration. Default: 64",
     )
     parser.add_argument(
-        "--max-length",
+        "--max_length",
         type=int,
         default=1024,
         help="Maximum length of the generated sequence. Default: 1024",
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--debug", action="store_true", help="Enable debug logging level.")
     parser.add_argument(
-        "--bidirectional", 
+        "--bidirectional",
         action="store_true", 
         help="Enable bidirectional sampling. After generating half of the sequence, it is flipped and model generates the other half in opposite direction."
     )
