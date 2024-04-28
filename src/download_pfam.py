@@ -5,6 +5,10 @@ from urllib.error import HTTPError
 from time import sleep
 import argparse
 import re
+import logging
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 
 def download_pfam_entry(base_url: str, download_file: str):
@@ -110,23 +114,29 @@ def download_pfam_entry(base_url: str, download_file: str):
 
 
 def main(args):
-    if not re.match(r"PF[0-9]{5}", args.pfam_code):
-        raise Exception(
-            f'Pfam code not valid. Must be "PF" followed by 5 digits, got: {args.pfam_code}. Example: PF12345'
-        )
+    """
+    Downloads the sequences of the Pfam families given in the arguments.
+    """
 
-    base_url = f"https://www.ebi.ac.uk:443/interpro/api/protein/UniProt/entry/pfam/{args.pfam_code}/?page_size=200&extra_fields=sequence"
-
+    base_url = "https://www.ebi.ac.uk:443/interpro/api/protein/UniProt/entry/pfam/{}/?page_size=200&extra_fields=sequence"
     os.makedirs("downloads", exist_ok=True)
-    download_file = os.path.join("downloads", f"{args.pfam_code}.fasta")
-    download_pfam_entry(base_url, download_file)
+
+    for pfam_code in args.pfam_codes:
+        if not re.match(r"PF[0-9]{5}", pfam_code):
+            raise Exception(f'Pfam code not valid. Must be "PF" followed by 5 digits, got: {pfam_code}. Example: PF12345')
+        download_file = os.path.join("downloads", f"{pfam_code}.fasta")
+        url = base_url.format(pfam_code)
+        logger.info(f"Downloading {pfam_code} from {url}")
+        download_pfam_entry(url, download_file)
+        logger.info(f"Downloaded {pfam_code} to {download_file}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "pfam_code",
-        help='Pfam code of the family to be downloaded. Must be "PF" and 5 digits. Example: PF12345',
+        "pfam_codes",
+        nargs="+",
+        help='Pfam codes of the families to be downloaded. Must be "PF" and 5 digits. Example: PF12345',
     )
     args = parser.parse_args()
     main(args)
