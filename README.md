@@ -1,41 +1,87 @@
 # ProGen2 Finetuning
 
-Accompanying code for my bachelor thesis.
+*Accompanying code for my bachelor thesis.*
 
-### Workflow
-We describe a simple workflow in which we illustrate the usage of the indifidual python scripts.
+---
 
-First of all, `cd src` into the folder which contains the source code.
+Ever wanted to finetune a generative protein language model on protein families of your choice? No? Well, now you can!
 
-#### Downloading data
-Select a few families from tha Pfam database, which you want to train the model on. Use their Pfam codes to download the data in FASTA format. The downloaded files will be saved into the `downloads/` directory. This may take a while, depending on the size of the downloaded families.
+## Usage
+
+We describe a simple workflow, on which we illustrate the usage of the provided python scripts.  
+
+### Install dependencies
+
+First of all, we need to install the required dependencies. Use a virtual environment to avoid conflicts with the system-wide packages.
 
 ```bash
-python3 download_pfam.py PF12300 PF12365 PF00257
+cd src
+python3 -m venv venv
+source venv/bin/activate
+pip3 install -r requirements.txt
 ```
 
-This command will download three protein families.
+### Downloading data
 
+Select a few families from the [Pfam](https://www.ebi.ac.uk/interpro/entry/pfam/#table) database, which you want to train the model on. Use their Pfam codes to download the data in FASTA format. The downloaded files will be saved into the `downloads/` directory. This may take a while, depending on the size of the downloaded families.
 
-#### Preprocessing the data
-Before finetuning the model, we need to preprocess the data to include the special famliy tokens, and the "1" and "2" tokens. We also remove the FASTA headers.
+Example code to dowlnoad three, relatively small, protein families:
 
-We specify the paths to the downloaded FASTA files using the `--input_files` option. 
-Optionally, we may define the names of train and test data files in which the data will be stored. We can also specify the ratio of train and test data (default is 0.8) and using a boolean flag `--bidirectional` we can save the sequences also in reverse, if we want to train a bidirectional model.
+```bash
+python3 download_pfam.py PF00257 PF02680 PF12365 
+```
+
+### Preprocessing the data
+
+Before finetuning the model, we need to preprocess the data to include the special famliy tokens, and the `1` and `2` tokens at the beginning and end of sequence. We also remove the FASTA headers.
+
+We specify the paths to the downloaded FASTA files using the `--input_files` option.  
+Optionally, we may define the names of output train and test data files in which the data will be stored. We can also specify the ratio of train and test data split (default is 0.8) and using a boolean flag `--bidirectional` we can save the sequences also in reverse, if we want to train a bidirectional model.
 
 ```bash
 python3 prepare_data.py \
-    --input_files downloads/PF12300.fasta downloads/PF12365.fasta downloads/PF00257.fasta \
-    --output_file_train=train_data_3fam.txt \
-    --output_file_test=test_data_3fam.txt \
+    --input_files downloads/PF00257.fasta downloads/PF02680.fasta downloads/PF12365.fasta \
+    --output_file_train=train_data_3_fams.txt \
+    --output_file_test=test_data_3_fams.txt \
     --train_split_ratio=0.8 \
     --bidirectional
 ```
 
+### Finetuning
 
-#### Finetuning
+Now we can finetune the model on the prepared data. It is highly recommended to use a GPU for finetuning. We specify paths to the train and test files and the values of hyperparameters. The model weights are automatically downloaded from my huggingface [repo](https://huggingface.co/hugohrban/progen2-small). After finetuning, the model binary, config file and tokenizer are saved into the `checkpoints/progen2-small/` directory.
 
+```bash
+python3 finetune.py \
+    --model=hugohrban/progen2-small \
+    --train_file=train_data_3_fams.txt \
+    --test_file=test_data_3_fams.txt \
+    --device=cuda \
+    --epochs=5 \
+    --batch-size=16 \
+    --accumulation_steps=4 \
+    --lr=1e-4 \
+    --decay=cosine \
+    --warmup_steps=200 \
+    --eval-before-train
+```
 
+Run `python3 finetune.py --help` to see the full list of available options and their descriptions.
 
+### Sampling
 
+Use the `sample.py` script to generate new sequences from a model using top-k sampling with temperature. You may use the model finetuned on 7 families described in the thesis, which is also available in my huggingface as [progen2-small-mix7](https://huggingface.co/hugohrban/progen2-small-mix7), or its bidirectional version [progen2-small-mix7-bidi](https://huggingface.co/hugohrban/progen2-small-mix7-bidi).
 
+```bash
+python sample.py \
+    --model=hugohrban/progen2-small-mix7 \
+    --device=cuda \
+    --batch_size=8 \
+    --iters=1 \
+    --max_length=512 \
+    --t=1.0 \
+    --k=10 \
+    --prompt="<|pf03668|>1MEVVIVTGMSGAGK"
+```
+
+Use the `--help` or `-h` option to see the full list of available options and their descriptions.
