@@ -35,23 +35,23 @@ def main():
         "--input_files", type=str, nargs="+", required=True, help="Input fasta files."
     )
     parser.add_argument(
-        "--output_file_train", type=str, default="train_data.txt", help="Output file."
+        "--output_file_train", type=str, default="train_data.txt", help="Output file for the train data split. Default: train_data.txt"
     )
     parser.add_argument(
-        "--output_file_test", type=str, default="test_data.txt", help="Output file."
+        "--output_file_test", type=str, default="test_data.txt", help="Output file for test data split. Default: test_data.txt"
     )
     parser.add_argument(
         "--bidirectional",
         "-b",
         action="store_true",
-        help="Whether store also the reverse of the sequences. Default: False.",
+        help="Whether to store also the reverse of the sequences. Default: False.",
     )
     parser.add_argument(
         "--train_split_ratio",
         "-s",
         type=float,
         default=0.8,
-        help="Train-test split ratio. Default: 0.8.",
+        help="Train-test split ratio. Default: 0.8",
     )
     parser.add_argument(
         "--seed", type=int, default=69, help="Random seed",
@@ -61,7 +61,7 @@ def main():
     np.random.seed(args.seed)
 
     if not 0 <= args.train_split_ratio <= 1:
-        logging.error("Train split ratio should be between 0 and 1.")
+        logging.error("Train split ratio must be between 0 and 1.")
         return 1
 
     train_data = []
