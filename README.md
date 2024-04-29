@@ -90,7 +90,7 @@ You can load the model directly from the huggingface repository and use it in py
 
 ```python
 from transformers import AutoModelForCausalLM
-from transformers import AutoTokenizer
+from tokenizers import Tokenizer
 # optionally use local imports
 # from models.progen.modeling_progen import ProGenForCausalLM
 # from models.progen.configuration_progen import ProGenConfig
@@ -99,11 +99,12 @@ import torch.nn.functional as F
 
 # load model and tokenizer
 model = AutoModelForCausalLM.from_pretrained("hugohrban/progen2-small-mix7", trust_remote_code=True)
-tokenizer = AutoTokenizer.from_pretrained("hugohrban/progen2-small-mix7", trust_remote_code=True)
+tokenizer = Tokenizer.from_pretrained("hugohrban/progen2-small-mix7")
+tokenizer.no_padding()
 
 # prepare input
 prompt = "<|pf03668|>1MEVVIVTGMSGAGK"
-input_ids = torch.tensor(tokenizer.encode(prompt)).to(model.device)
+input_ids = torch.tensor(tokenizer.encode(prompt).ids).to(model.device)
 
 # forward pass
 logits = model(input_ids).logits
@@ -111,6 +112,6 @@ logits = model(input_ids).logits
 # print output probabilities
 next_token_logits = logits[-1, :]
 next_token_probs = F.softmax(next_token_logits, dim=-1)
-for i, prob in enumerate(next_token_probs):
-    print(f"{tokenizer.decode(i)}: {100 * prob:.2f}%")
+for i in range(tokenizer.get_vocab_size(with_added_tokens=False)):
+    print(f"{tokenizer.id_to_token(i)}: {round(100 * next_token_probs[i].item(), 2):.2f} %")
 ```
