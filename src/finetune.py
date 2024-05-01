@@ -234,7 +234,7 @@ def main(args: argparse.Namespace):
 
     # loading model
     logger.info(f"Loading model: {args.model}...")
-    model = ProGenForCausalLM.from_pretrained(args.model).to(args.device)
+    model = ProGenForCausalLM.from_pretrained(args.model).to(device)
     logger.info(f"Model loaded. Parameter count: {model.num_parameters() // 1e6} M")
     init_new_embeddings(model, prefixes)
 
