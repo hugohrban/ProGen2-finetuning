@@ -71,7 +71,7 @@ Run `python3 finetune.py --help` to see the full list of available options and t
 Use the `sample.py` script to generate new sequences from a model using top-k sampling with temperature. You may use the model finetuned on 7 families described in the thesis, which is also available in my huggingface as [progen2-small-mix7](https://huggingface.co/hugohrban/progen2-small-mix7), or its bidirectional version [progen2-small-mix7-bidi](https://huggingface.co/hugohrban/progen2-small-mix7-bidi).
 
 ```bash
-python sample.py \
+python3 sample.py \
     --model=hugohrban/progen2-small-mix7 \
     --device=cuda \
     --batch_size=8 \
