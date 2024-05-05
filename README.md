@@ -56,12 +56,12 @@ python3 finetune.py \
     --test_file=test_data_3_fams.txt \
     --device=cuda \
     --epochs=5 \
-    --batch-size=16 \
+    --batch_size=16 \
     --accumulation_steps=4 \
     --lr=1e-4 \
     --decay=cosine \
     --warmup_steps=200 \
-    --eval-before-train
+    --eval_before_train
 ```
 
 Run `python3 finetune.py --help` to see the full list of available options and their descriptions.
