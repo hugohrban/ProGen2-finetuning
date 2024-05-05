@@ -109,7 +109,7 @@ def train_epoch(
     total_loss = 0
     pbar = tqdm(total=len(dataloader) // args.accumulation_steps)
     for i, batch in enumerate(dataloader):
-        batch = batch.to(args.device)
+        batch = batch.to(model.device)
         loss = model(batch, labels=batch).loss
         loss = loss / args.accumulation_steps
         loss.backward()
@@ -147,7 +147,7 @@ def evaluate(
             # remove padding, because the base model wasn't trained with padding
             non_zero_length = (batch != 0).sum().item()
             batch = batch[:, :non_zero_length]
-        batch = batch.to(args.device)
+        batch = batch.to(model.device)
         loss = model(batch, labels=batch).loss
         total_loss += loss.item()
         pbar.update()
