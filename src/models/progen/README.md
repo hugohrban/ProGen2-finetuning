@@ -1,1 +1,1 @@
-**DISCLAIMER**: The code in `modeling_progen.py` is a modification of https://github.com/huggingface/transformers/blob/main/src/transformers/models/gptj/modeling_gptj.py . See license in source code files.
+**DISCLAIMER**: The code in `modeling_progen.py` is a modification of https://github.com/huggingface/transformers/blob/main/src/transformers/models/gptj/modeling_gptj.py and https://github.com/salesforce/progen/tree/main/progen2/models/progen/modeling_progen.py . See license in source code files.
