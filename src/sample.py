@@ -32,15 +32,15 @@ def sample(
 
     if isinstance(prompt, str):
         encoding: Encoding = tokenizer.encode(prompt)
-        ids = torch.tensor(encoding.ids)                                 # (T,)
+        ids = torch.tensor(encoding.ids)                             # (T,)
         ids = ids[:len(torch.nonzero(ids))]
 
-        x = torch.zeros((num_return_sequences, ids.shape[0]))            # (B, T)
+        x = torch.zeros((num_return_sequences, ids.shape[0]))        # (B, T)
         x = x + ids
         x = x.to(device).to(torch.int32)
     # prompt is a tensor of token ids, with shape (B, T), in case of bidi smapling
     elif isinstance(prompt, torch.Tensor):
-        x = prompt.to(device).to(torch.int32)                            # (B, T)
+        x = prompt.to(device).to(torch.int32)                        # (B, T)
     else:
         raise ValueError("Prompt should be either string or torch.Tensor")
 
@@ -61,7 +61,7 @@ def sample(
             logits[logits < v[:, -1].unsqueeze(-1)] = -1e9           # (B, V)
         probs = torch.softmax(logits, dim=-1)                        # (B, V)
         x = torch.multinomial(probs, num_samples=1)                  # (B, 1)
-        generated = torch.cat([generated, x], dim=-1)      # (B, T+1)
+        generated = torch.cat([generated, x], dim=-1)                # (B, T+1)
         pbar.update()
     pbar.close()
 
