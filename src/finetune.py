@@ -108,9 +108,10 @@ def train_epoch(
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     total_loss = 0
     pbar = tqdm(total=len(dataloader) // args.accumulation_steps)
+    batch: torch.Tensor
     for i, batch in enumerate(dataloader):
         batch = batch.to(model.device)
-        loss = model(batch, labels=batch).loss
+        loss: torch.Tensor = model(batch, labels=batch).loss
         loss = loss / args.accumulation_steps
         loss.backward()
         total_loss = total_loss + loss.item()
@@ -142,13 +143,14 @@ def evaluate(
         dataloader = DataLoader(dataset, batch_size=args.batch_size * 4, shuffle=True)
     total_length = len(dataloader)
     pbar = tqdm(total=total_length)
+    batch: torch.Tensor
     for batch in dataloader:
         if before_train:
             # remove padding, because the base model wasn't trained with padding
             non_zero_length = (batch != 0).sum().item()
             batch = batch[:, :non_zero_length]
         batch = batch.to(model.device)
-        loss = model(batch, labels=batch).loss
+        loss: torch.Tensor = model(batch, labels=batch).loss
         total_loss += loss.item()
         pbar.update()
     pbar.close()
