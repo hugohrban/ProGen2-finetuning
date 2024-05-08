@@ -1,0 +1,9 @@
+.DS_Store
+
+*.fa
+*.fasta
+
+venv/
+
+*.pkl
+
