@@ -22,7 +22,7 @@ def sample(
     prompt: Union[str, torch.Tensor],
     max_length: int,
     num_return_sequences: int,
-    temperature: int = 1.0,
+    temperature: float = 1.0,
     top_k: Optional[int] = None,
 ) -> list[str]:
     """
