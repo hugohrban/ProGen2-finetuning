@@ -58,7 +58,7 @@ def sample(
         logits = logits / temperature
         if top_k is not None:
             v, _ = torch.topk(logits, top_k, dim=-1)                 # (B, k)
-            logits[logits < v[:, -1].unsqueeze(-1)] = -1e9           # (B, V)
+            logits = torch.where(logits >= v[:, -1:], logits, -1e9)  # (B, V)
         probs = torch.softmax(logits, dim=-1)                        # (B, V)
         x = torch.multinomial(probs, num_samples=1)                  # (B, 1)
         generated = torch.cat([generated, x], dim=-1)                # (B, T+1)
