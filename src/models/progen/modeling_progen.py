@@ -78,8 +78,9 @@ class ProGenAttention(nn.Module):
             torch.tril(
                 torch.ones((max_positions, max_positions), dtype=torch.bool)
             ).view(1, 1, max_positions, max_positions),
+            persistent=False
         )
-        self.register_buffer("masked_bias", torch.tensor(-1e9))     # approx. -inf
+        self.register_buffer("masked_bias", torch.tensor(-1e9), persistent=False)     # approx. -inf
 
         self.attn_dropout = nn.Dropout(config.attn_pdrop)
         self.resid_dropout = nn.Dropout(config.resid_pdrop)
