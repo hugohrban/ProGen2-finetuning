@@ -51,7 +51,7 @@ def init_new_embeddings(model: ProGenForCausalLM, prefixes: list[str]):
     if len(prefixes) <= 2:
         logger.info("No new embeddings to initialize.")
         return
-    new_embs = torch.zeros((len(prefixes) - 2, model.config.n_embd)).to(model.device)
+    new_embs = torch.zeros((len(prefixes) - 2, model.config.embed_dim)).to(model.device)
 
     unk_token_emb: torch.Tensor = model.transformer.wte.weight[-1].detach()
     mean_unk_emb = torch.zeros_like(new_embs) + unk_token_emb.mean()
