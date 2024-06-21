@@ -159,7 +159,7 @@ def main(args):
     os.makedirs(samples_dir, exist_ok=True)
     output_file = os.path.join(samples_dir, f"samples_ctx{args.prompt}_k{args.k}_t{args.t}.fa")
 
-    if args.k == 0:
+    if args.k == 0 or args.k > model.config.vocab_size_lm_head:
         args.k = None
 
     logger.debug(f"Sampling parameters: top_k={args.k}, temperature={args.t}")
