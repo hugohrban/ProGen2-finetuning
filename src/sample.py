@@ -78,7 +78,7 @@ def truncate(seq: str) -> str:
     """
 
     # remove family token
-    seq = re.sub(r"<\|pf\d+\|>", "", seq)
+    seq = re.sub(r"<\|.*\|>", "", seq)
 
     # remove initial terminus
     terminus = seq[0]
@@ -105,7 +105,7 @@ def reverse(seq: str) -> str:
     Reverse a sequence that starts with a family token and initial terminus.
     Then continue generating the sequence in opposite direction.
     """
-    prefix_pattern = re.compile(r"<\|pf[0-9]{5}\|>")
+    prefix_pattern = re.compile(r"<\|.*\|>")
     m = re.search(prefix_pattern, seq)
     prefix = m.group() if m else ""
 
