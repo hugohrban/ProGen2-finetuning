@@ -29,35 +29,7 @@ def prepare_data(input_file_name: str, bidirectional: bool = False) -> list[str]
     return parsed_seqs
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--input_files", type=str, nargs="+", required=True, help="Input fasta files."
-    )
-    parser.add_argument(
-        "--output_file_train", type=str, default="train_data.txt", help="Output file for the train data split. Default: train_data.txt"
-    )
-    parser.add_argument(
-        "--output_file_test", type=str, default="test_data.txt", help="Output file for test data split. Default: test_data.txt"
-    )
-    parser.add_argument(
-        "--bidirectional",
-        "-b",
-        action="store_true",
-        help="Whether to store also the reverse of the sequences. Default: False.",
-    )
-    parser.add_argument(
-        "--train_split_ratio",
-        "-s",
-        type=float,
-        default=0.8,
-        help="Train-test split ratio. Default: 0.8",
-    )
-    parser.add_argument(
-        "--seed", type=int, default=69, help="Random seed",
-    )
-    args = parser.parse_args()
-
+def main(args: argparse.Namespace):
     np.random.seed(args.seed)
 
     if not 0 <= args.train_split_ratio <= 1:
@@ -93,4 +65,31 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input_files", type=str, nargs="+", required=True, help="Input fasta files."
+    )
+    parser.add_argument(
+        "--output_file_train", type=str, default="train_data.txt", help="Output file for the train data split. Default: train_data.txt"
+    )
+    parser.add_argument(
+        "--output_file_test", type=str, default="test_data.txt", help="Output file for test data split. Default: test_data.txt"
+    )
+    parser.add_argument(
+        "--bidirectional",
+        "-b",
+        action="store_true",
+        help="Whether to store also the reverse of the sequences. Default: False.",
+    )
+    parser.add_argument(
+        "--train_split_ratio",
+        "-s",
+        type=float,
+        default=0.8,
+        help="Train-test split ratio. Default: 0.8",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=69, help="Random seed",
+    )
+    args = parser.parse_args()
+    main(args)
