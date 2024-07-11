@@ -32,6 +32,7 @@ from transformers.modeling_outputs import (
 )
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
+from transformers.utils.model_parallel_utils import assert_device_map, get_device_map
 from .configuration_progen import ProGenConfig
 
 
@@ -312,7 +313,7 @@ class ProGenPreTrainedModel(PreTrainedModel):
 
     config_class = ProGenConfig
     base_model_prefix = "transformer"
-    is_parallelizable = False
+    is_parallelizable = True
 
     def __init__(self, *inputs, **kwargs):
         super().__init__(*inputs, **kwargs)
@@ -347,6 +348,39 @@ class ProGenModel(ProGenPreTrainedModel):
             config.rotary_dim, config.n_positions // config.n_head
         )
         self.init_weights()
+
+        # Model parallel
+        self.model_parallel = False
+        self.device_map = None
+
+    def parallelize(self, device_map=None):
+        # Check validity of device_map
+        self.device_map = (
+            get_device_map(len(self.h), range(torch.cuda.device_count())) if device_map is None else device_map
+        )
+        assert_device_map(self.device_map, len(self.h))
+        self.model_parallel = True
+        self.first_device = "cpu" if "cpu" in self.device_map.keys() else "cuda:" + str(min(self.device_map.keys()))
+        self.last_device = "cuda:" + str(max(self.device_map.keys()))
+        self.wte = self.wte.to(self.first_device)
+        # Load onto devices
+        for k, v in self.device_map.items():
+            for block in v:
+                cuda_device = "cuda:" + str(k)
+                self.h[block] = self.h[block].to(cuda_device)
+        # ln_f to last
+        self.ln_f = self.ln_f.to(self.last_device)
+
+    def deparallelize(self):
+        self.model_parallel = False
+        self.device_map = None
+        self.first_device = "cpu"
+        self.last_device = "cpu"
+        self.wte = self.wte.to("cpu")
+        for index in range(len(self.h)):
+            self.h[index] = self.h[index].to("cpu")
+        self.ln_f = self.ln_f.to("cpu")
+        torch.cuda.empty_cache()
 
     def forward(
         self,
@@ -456,6 +490,18 @@ class ProGenModel(ProGenPreTrainedModel):
         all_self_attentions = () if output_attentions else None
         all_hidden_states = () if output_hidden_states else None
         for i, (block, layer_past) in enumerate(zip(self.h, past_key_values)):
+            # Model parallel
+            if self.model_parallel:
+                torch.cuda.set_device(hidden_states.device)
+                # Ensure layer_past is on same device as hidden_states (might not be correct)
+                if layer_past is not None:
+                    layer_past = tuple(past_state.to(hidden_states.device) for past_state in layer_past)
+                # Ensure that attention_mask is always on the same device as hidden_states
+                if attention_mask is not None:
+                    attention_mask = attention_mask.to(hidden_states.device)
+                if isinstance(head_mask, torch.Tensor):
+                    head_mask = head_mask.to(hidden_states.device)
+
             if output_hidden_states:
                 all_hidden_states = all_hidden_states + (hidden_states,)
 
@@ -500,6 +546,12 @@ class ProGenModel(ProGenPreTrainedModel):
                     outputs[2 if use_cache else 1],
                 )
 
+            # Model Parallel: If it's the last layer for that device, put things on the next device
+            if self.model_parallel:
+                for k, v in self.device_map.items():
+                    if i == v[-1] and "cuda:" + str(k) != self.last_device:
+                        hidden_states = hidden_states.to("cuda:" + str(k + 1))
+
         hidden_states = self.ln_f(hidden_states)
 
         hidden_states = hidden_states.view(*output_shape)
@@ -539,6 +591,28 @@ class ProGenForCausalLM(ProGenPreTrainedModel):
         self.transformer = ProGenModel(config)
         self.lm_head = nn.Linear(config.embed_dim, config.vocab_size_lm_head)
         self.init_weights()
+
+        # Model parallel
+        self.model_parallel = False
+        self.device_map = None
+
+    def parallelize(self, device_map=None):
+        self.device_map = (
+            get_device_map(len(self.transformer.h), range(torch.cuda.device_count()))
+            if device_map is None
+            else device_map
+        )
+        assert_device_map(self.device_map, len(self.transformer.h))
+        self.transformer.parallelize(self.device_map)
+        self.lm_head = self.lm_head.to(self.transformer.first_device)
+        self.model_parallel = True
+
+    def deparallelize(self):
+        self.transformer.deparallelize()
+        self.transformer = self.transformer.to("cpu")
+        self.lm_head = self.lm_head.to("cpu")
+        self.model_parallel = False
+        torch.cuda.empty_cache()
 
     def prepare_inputs_for_generation(self, input_ids, past=None, **kwargs):
         token_type_ids = kwargs.get("token_type_ids", None)
