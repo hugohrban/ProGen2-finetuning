@@ -203,7 +203,7 @@ def main(args):
                 print(f">seq_{i * args.batch_size + j}", file=f)
                 c = truncate(c)
                 print(c, file=f)
-    logger.info(f"Generated samples were saved to file {output_file}.")
+    logger.info(f"Generated samples were saved to file {output_file}")
 
 
 if __name__ == "__main__":
