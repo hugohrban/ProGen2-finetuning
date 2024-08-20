@@ -179,7 +179,7 @@ def train(
         eval_loss = evaluate(model, test_dataset, args)
         eval_losses.append(eval_loss)
 
-        model_name = (job_id + "-" if job_id is not None else "") + args.model.strip(os.pathsep).split(os.pathsep)[-1]
+        model_name = (job_id + "-" if job_id is not None else "") + args.model.strip(os.sep).split(os.sep)[-1]
         if epoch % args.checkpoint_rate == 0 or epoch == args.epochs:
             checkpoint_path = os.path.join("checkpoints", f"{model_name}-finetuned", f"e{epoch}")
             os.makedirs(checkpoint_path, exist_ok=True)
