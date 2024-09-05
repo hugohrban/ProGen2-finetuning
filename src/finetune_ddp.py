@@ -34,15 +34,18 @@ class Protein_dataset(Dataset):
         return torch.tensor(line.ids)
 
 
-def load_data(file: str) -> tuple[list[str], list[str]]:
+def load_data(file: str, strip_prefix: bool = False) -> tuple[list[str], list[str]]:
     lines = []
     prefixes = set()
     with open(file, "r") as f:
         for line in f:
             line = line.strip()
             prefix = re.match(r"<\|.*\|>", line).group(0)
+            if strip_prefix:
+                line = line.replace(prefix, "")
             prefixes.add(prefix)
             lines.append(line)
+    logging.info(f"Example sequence: {lines[0]}")
     prefixes = sorted(list(prefixes))
     return lines, prefixes
 
@@ -216,11 +219,14 @@ def main(args: argparse.Namespace):
     )
     tokenizer.enable_truncation(max_length=1024)
 
-    train_data, prefixes = load_data(args.train_file)
-    test_data, prefixes_test = load_data(args.test_file)
+    train_data, prefixes = load_data(args.train_file, args.no_prefix)
+    test_data, prefixes_test = load_data(args.test_file, args.no_prefix)
     logger.info(f"Found prefixes: {prefixes}")
     assert prefixes == prefixes_test, "Prefixes in train and test data must be the same"
-    tokenizer.add_tokens(prefixes)
+    if not args.no_prefix:
+        tokenizer.add_tokens(prefixes)
+    else:
+        logger.info("Ignoring prefixes for training, not adding tokens")
 
     train_data = Protein_dataset(train_data, tokenizer)
     test_data = Protein_dataset(test_data, tokenizer)
@@ -360,6 +366,11 @@ if __name__ == "__main__":
         action="store_true",
         default=False,
         help="Enable debug logging level.",
+    )
+    parser.add_argument(
+        "--no_prefix",
+        action="store_true",
+        help="Disables prefix token during training."
     )
     args = parser.parse_args()
 
