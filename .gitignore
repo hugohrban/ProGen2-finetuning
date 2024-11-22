@@ -9,3 +9,5 @@ venv/
 
 *.pkl
 
+__pycache__/
+checkpoints/
