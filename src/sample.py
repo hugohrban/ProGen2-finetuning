@@ -149,7 +149,10 @@ def main(args):
     logger.debug("Model loaded.")
 
     logger.info("Loading tokenizer")
-    tokenizer: Tokenizer = Tokenizer.from_pretrained(args.model)
+    if os.path.exists(os.path.join(args.model, "tokenizer.json")):
+        tokenizer: Tokenizer = Tokenizer.from_file(os.path.join(args.model, "tokenizer.json"))
+    else:
+        tokenizer: Tokenizer = Tokenizer.from_pretrained(args.model)
     tokenizer.no_padding()
     logger.debug("Tokenizer loaded.")
     logger.debug(f"Tokenizer vocab size: {tokenizer.get_vocab_size()}")
