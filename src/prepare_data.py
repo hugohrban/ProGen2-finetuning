@@ -14,18 +14,14 @@ def prepare_data(input_file_name: str, bidirectional: bool = False) -> list[str]
     """
     Prepare data from the input fasta file.
     """
-    m = re.search(r"PF([0-9]{5})\.fasta", input_file_name)
-    if m is None:
-        logger.error("Invalid input file name.")
-        raise ValueError("Invalid input file name. Input file should be in the format PFXXXXX.fasta. Please consider downloading the data using the download_pfam.py script.")
-
-    prefix = m.group(1)
+    base_name = os.path.basename(input_file_name).lower()
+    label = os.path.splitext(base_name)[0]
     seqs = SeqIO.parse(open(input_file_name, "r"), "fasta")
     parsed_seqs = []
     for s in seqs:
-        parsed_seqs.append(f"<|pf{prefix}|>1{str(s.seq)}2")
+        parsed_seqs.append(f"<|{label}|>1{str(s.seq)}2")
         if bidirectional:
-            parsed_seqs.append(f"<|pf{prefix}|>2{str(s.seq)[::-1]}1")
+            parsed_seqs.append(f"<|{label}|>2{str(s.seq)[::-1]}1")
     return parsed_seqs
 
 
