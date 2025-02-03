@@ -1,8 +1,8 @@
-# ProGen2 Finetuning
+# ProGen2 Finetuning 🦾🧬🧪
 
-*Accompanying code for my bachelor thesis and [paper](10.1109/BIBM62325.2024.10821712)*
+*Accompanying code for my bachelor thesis and [paper](https://doi.org/10.1109/BIBM62325.2024.10821712).*
 
-Ever wanted to finetune a generative protein language model on protein families of your choice? No? Well, now you can!
+**Ever wanted to finetune a generative protein language model on protein families of your choice? No? Well, now you can!**
 
 ## Usage
 
