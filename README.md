@@ -1,6 +1,6 @@
 # ProGen2 Finetuning
 
-*Accompanying code for my bachelor thesis.*
+*Accompanying code for my bachelor thesis and [paper](10.1109/BIBM62325.2024.10821712)*
 
 Ever wanted to finetune a generative protein language model on protein families of your choice? No? Well, now you can!
 
@@ -113,4 +113,20 @@ next_token_logits = logits[-1, :]
 next_token_probs = torch.softmax(next_token_logits, dim=-1)
 for i in range(tokenizer.get_vocab_size(with_added_tokens=False)):
     print(f"{tokenizer.id_to_token(i)}: {round(100 * next_token_probs[i].item(), 2):.2f} %")
+```
+
+## Citation
+
+If you found this code useful, please cite:
+```bibtex
+@INPROCEEDINGS{10821712,
+  author={Hrbáň, Hugo and Hoksza, David},
+  booktitle={2024 IEEE International Conference on Bioinformatics and Biomedicine (BIBM)}, 
+  title={Protein Family Sequence Generation through ProGen2 Fine-Tuning}, 
+  year={2024},
+  volume={},
+  number={},
+  pages={7037-7039},
+  keywords={Proteins;Training;Measurement;Adaptation models;Biological system modeling;Molecular biophysics;Protein sequence;Natural language processing;Biological information theory;Software development management;protein sequence;protein language model;sequence generation;fine-tuning},
+  doi={10.1109/BIBM62325.2024.10821712}}
 ```
